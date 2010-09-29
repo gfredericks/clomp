@@ -1,0 +1,9 @@
+.cake
+log
+pom.xml
+*.jar
+*.war
+lib
+classes
+build
+clj-stomp

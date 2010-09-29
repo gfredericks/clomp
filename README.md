@@ -1,0 +1,1 @@
+clj-stomp is a [stomp](http://stomp.codehaus.org/Protocol) client for clojure
