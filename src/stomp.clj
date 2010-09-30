@@ -6,6 +6,7 @@
 
 (defprotocol Stomp  
   (connect     [s headers])
+  (send        [s headers body])
   (subscribe   [s headers])
   (unsubscribe [s headers])
   (begin       [s headers])
@@ -13,7 +14,6 @@
   (abort       [s headers])
   (ack         [s headers])
   (disconnect  [s])
-  (send        [s headers body])
   (receive     [s]))
 
 (defn- send-frame [socket command headers & [body]]
