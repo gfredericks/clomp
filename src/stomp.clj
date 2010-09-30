@@ -84,4 +84,4 @@
   (ack         [s headers]      (send-frame s "ACK"         headers))
   (disconnect  [s]              (send-frame s "DISCONNECT"  {}))
   (receive     [s]              (receive-frame s))
-  (clone       [s] (doto (Socket.) (.connect (.getLocalSocketAddress s)))))
+  (clone       [s] (doto (Socket.) (.connect (.getRemoteSocketAddress s)))))

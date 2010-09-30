@@ -20,3 +20,15 @@
         (is (= :MESSAGE (:type received)))
         (is (= "/queue/foo" (get-in received [:headers :destination])))
         (is (= "blah" (:body received)))))))
+
+(deftest two-clients
+  (let [s1 (java.net.Socket. "localhost" 61613)
+        s2 (stomp/clone s1)]
+    (stomp/with-connection s1 {}
+      (stomp/send s1 {:destination "/queue/foo"} "zap!"))
+    (stomp/with-connection s2 {}
+      (stomp/subscribe s2 {:destination "/queue/foo"})
+      (let [received (stomp/receive s2)]
+        (is (= :MESSAGE (:type received)))
+        (is (= "/queue/foo" (get-in received [:headers :destination])))
+        (is (= "zap!" (:body received)))))))
