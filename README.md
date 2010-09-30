@@ -13,12 +13,8 @@ Now you can connect using a `java.net.Socket`
     (require 'stomp)
     (def s (java.net.Socket. "localhost" 61613))
 
-    (stomp/connect s {})
-    ; => #:stomp.Frame{:type :CONNECTED, :headers {:session "wow"}, :body ""}
-
-    (stomp/subscribe s {:destination "/queue/foo"})
-    (stomp/send s {:destination "/queue/foo"} "blah")
-    (stomp/receive s)
-    ; => #:stomp.Frame{:type :MESSAGE, :headers {:content-length "4", :destination "/queue/foo"}, :body "blah"}    
-    
-    (stomp/disconnect)
+    (stomp/with-connection s {}
+      (stomp/subscribe s {:destination "/queue/foo"})
+      (stomp/send s {:destination "/queue/foo"} "blah")
+      (stomp/receive s))
+    ; => #:stomp.Frame{:type :MESSAGE, :headers {:content-length "4", :destination "/queue/foo"}, :body "blah"}

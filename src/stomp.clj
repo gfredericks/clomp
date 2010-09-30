@@ -16,6 +16,18 @@
   (disconnect  [s])
   (receive     [s]))
 
+(def *session-id* nil)
+
+(defmacro with-connection [s headers & forms]
+  `(let [frame# (connect ~s ~headers)]
+     (if-not (= :CONNECTED (:type frame#))
+       (throw (Exception. (:message frame#))))
+     (binding [*session-id* (get-in frame# [:headers :session-id])]
+       (try
+         ~@forms
+         (finally
+          (disconnect ~s))))))
+
 (defn- send-frame [socket command headers & [body]]
   (binding [*out* (writer socket)]
     (println command)
