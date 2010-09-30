@@ -57,17 +57,15 @@
           body    (read-body (:content-length headers))]
       (Frame. type headers body))))
 
-(def default-stomp-impl
-  {:connect     (fn [s headers]      (send-frame s "CONNECT"     headers) (receive-frame s))
-   :send        (fn [s headers body] (send-frame s "SEND"        headers body))
-   :subscribe   (fn [s headers]      (send-frame s "SUBSCRIBE"   headers))
-   :unsubscribe (fn [s headers]      (send-frame s "UNSUBSCRIBE" headers))
-   :begin       (fn [s headers]      (send-frame s "BEGIN"       headers))
-   :commit      (fn [s headers]      (send-frame s "COMMIT"      headers))
-   :abort       (fn [s headers]      (send-frame s "ABORT"       headers))
-   :ack         (fn [s headers]      (send-frame s "ACK"         headers))
-   :disconnect  (fn [s]              (send-frame s "DISCONNECT"  {}))
-   :receive     (fn [s]              (receive-frame s))})
-
-(extend Socket
-  Stomp default-stomp-impl)
+(extend-type Socket
+  Stomp
+  (connect     [s headers]      (send-frame s "CONNECT"     headers) (receive-frame s))
+  (send        [s headers body] (send-frame s "SEND"        headers body))
+  (subscribe   [s headers]      (send-frame s "SUBSCRIBE"   headers))
+  (unsubscribe [s headers]      (send-frame s "UNSUBSCRIBE" headers))
+  (begin       [s headers]      (send-frame s "BEGIN"       headers))
+  (commit      [s headers]      (send-frame s "COMMIT"      headers))
+  (abort       [s headers]      (send-frame s "ABORT"       headers))
+  (ack         [s headers]      (send-frame s "ACK"         headers))
+  (disconnect  [s]              (send-frame s "DISCONNECT"  {}))
+  (receive     [s]              (receive-frame s)))
