@@ -1,4 +1,4 @@
-clj-stomp is a [stomp](http://stomp.codehaus.org/Protocol) client for clojure
+clj-stomp is a [Streaming Text Oriented Messaging Protocol](http://stomp.codehaus.org/Protocol) client for Clojure.
 
 # Getting started
 
