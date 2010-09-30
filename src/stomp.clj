@@ -5,28 +5,31 @@
   (:import [java.net Socket]))
 
 (defprotocol Stomp  
-  (connect     [s headers])
-  (send        [s headers body])
-  (subscribe   [s headers])
-  (unsubscribe [s headers])
-  (begin       [s headers])
-  (commit      [s headers])
-  (abort       [s headers])
-  (ack         [s headers])
-  (disconnect  [s])
-  (receive     [s]))
+  (connect     [mq headers])
+  (send        [mq headers body])
+  (subscribe   [mq headers])
+  (unsubscribe [mq headers])
+  (begin       [mq headers])
+  (commit      [mq headers])
+  (abort       [mq headers])
+  (ack         [mq headers])
+  (disconnect  [mq])
+  (receive     [mq])
+  (clone       [mq]))
 
 (def *session-id* nil)
+(def *connection* nil)
 
-(defmacro with-connection [s headers & forms]
-  `(let [frame# (connect ~s ~headers)]
+(defmacro with-connection [mq headers & forms]
+  `(let [frame# (connect ~mq ~headers)]
      (if-not (= :CONNECTED (:type frame#))
        (throw (Exception. (:message frame#))))
-     (binding [*session-id* (get-in frame# [:headers :session-id])]
+     (binding [*connection* ~mq
+               *session-id* (get-in frame# [:headers :session-id])]
        (try
          ~@forms
          (finally
-          (disconnect ~s))))))
+          (disconnect ~mq))))))
 
 (defn- send-frame [socket command headers & [body]]
   (binding [*out* (writer socket)]
@@ -80,4 +83,5 @@
   (abort       [s headers]      (send-frame s "ABORT"       headers))
   (ack         [s headers]      (send-frame s "ACK"         headers))
   (disconnect  [s]              (send-frame s "DISCONNECT"  {}))
-  (receive     [s]              (receive-frame s)))
+  (receive     [s]              (receive-frame s))
+  (clone       [s] (doto (Socket.) (.connect (.getLocalSocketAddress s)))))
