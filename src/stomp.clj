@@ -25,7 +25,7 @@
      (if-not (= :CONNECTED (:type frame#))
        (throw (Exception. (:message frame#))))
      (binding [*connection* ~mq
-               *session-id* (get-in frame# [:headers :session-id])]
+               *session-id* (get-in frame# [:headers :session])]
        (try
          ~@forms
          (finally
