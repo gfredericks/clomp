@@ -2,13 +2,13 @@ clj-stomp is a [Streaming Text Oriented Messaging Protocol](http://stomp.codehau
 
 # Getting started
 
-Install a [stomp broker](http://stomp.codehaus.org/Brokers) and start it up.
-A quick and dirty one is stompserver:
+Install a [stomp broker](http://stomp.codehaus.org/Brokers) and start it up. Both
+[StompServer](http://stompserver.rubyforge.org) and [CoilMQ](http://code.google.com/p/coilmq)
+don't seem to handle `ack:auto` correctly, so I've been testing with [HornetQ](http://jboss.org/hornetq).
 
-    gem install stompserver
-    stompserver
+# Usage
 
-Now you can connect using a `java.net.Socket`:
+You can connect to a message broker using a `java.net.Socket`:
 
     (require 'stomp)
 
