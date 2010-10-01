@@ -34,8 +34,8 @@
          (finally
           (disconnect ~mq))))))
 
-(defn- send-frame [socket command headers & [body]]
-  (binding [*out* (io/writer socket)]
+(defn- send-frame [out command headers & [body]]
+  (binding [*out* (io/writer out)]
     (println command)
     (println (join "\n" (for [[k v] headers] (str (name k) ":" v))))
     (if body (println (str "content-length:" (count body))))
@@ -51,26 +51,29 @@
         (recur (assoc headers (keyword key) val))
         headers))))
 
-(defn- read-body [length]
+(defn- read-body [in length]
   (if length
     (let [length (Integer/parseInt length)
           buffer (char-array length)]
-      (.read *in* buffer 0 length)
-      (.read *in*) ; consume \0
+      (loop [offset 0]
+        (if (< offset length)
+          (recur (+ (.read in buffer offset (- length offset))
+                    offset ))))
+      (.read in) ;; consume \0
       (String. buffer))
     (loop [string ""]
-      (let [c (.read *in*)]
+      (let [c (.read in)]
         (if (= 0 c)
           string
           (recur (str string (char c))))))))
 
 (defrecord Frame [type headers body])
 
-(defn- receive-frame [socket]
-  (binding [*in* (io/reader socket)]
+(defn- receive-frame [in]
+  (binding [*in* (io/reader in)]
     (let [type    (keyword (read-line))
           headers (read-headers)
-          body    (read-body (:content-length headers))]
+          body    (read-body *in* (:content-length headers))]
       (Frame. type headers body))))
 
 (extend-type Socket
