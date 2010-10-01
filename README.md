@@ -6,6 +6,10 @@ Install a [stomp broker](http://stomp.codehaus.org/Brokers) and start it up. Bot
 [StompServer](http://stompserver.rubyforge.org) and [CoilMQ](http://code.google.com/p/coilmq)
 don't seem to handle `ack:auto` correctly, so I've been testing with [HornetQ](http://jboss.org/hornetq).
 
+    git clone git://github.com/jmesnil/hornetq-stomp.git
+    cd hornetq-stomp
+    ant server
+
 # Usage
 
 You can connect to a message broker using a `java.net.Socket`:
