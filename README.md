@@ -1,4 +1,6 @@
-clj-stomp is a [Streaming Text Oriented Messaging Protocol](http://stomp.codehaus.org/Protocol) client for Clojure.
+clj-stomp is a [Streaming Text Oriented Messaging Protocol](http://stomp.codehaus.org/Protocol)
+client library for Clojure. Stomp is a text-based wire format that lets clients communicate
+through a variety Stomp message brokers, providing interoperable, cross-language messaging.
 
 # Getting started
 
