@@ -16,21 +16,24 @@
     (stomp/with-connection s {:login "foo" :password "secret"}
       (is stomp/*session-id*)
       (is stomp/*connection*)
-      (stomp/subscribe s {:destination "/queue/foo"})
-      (stomp/send s {:destination "/queue/foo"} "blah")
+      (stomp/subscribe s {:destination "/queue/a" :ack "auto"})
+      (stomp/send s {:destination "/queue/a"} "blah")
+      (stomp/send s {:destination "/queue/a"} "blah?")
+      (stomp/send s {:destination "/queue/a"} "blah!")
       (let [received (stomp/receive s)]
         (is (= :MESSAGE (:type received)))
-        (is (= "/queue/foo" (get-in received [:headers :destination])))
-        (is (= "blah" (:body received)))))))
+        (is (= "/queue/a" (get-in received [:headers :destination])))
+        (is (= "blah" (:body received))))
+      (is (= "blah?" (:body (stomp/receive s))))
+      (is (= "blah!" (:body (stomp/receive s)))))))
 
 (deftest two-clients
   (let [s1 (java.net.Socket. "localhost" 61613)
         s2 (stomp/clone s1)]
     (stomp/with-connection s1 {:login "foo" :password "secret"}
-      (stomp/send s1 {:destination "/queue/foo"} "zap!"))
+      (stomp/send s1 {:destination "/queue/a"} "zap!")
+      (stomp/send s1 {:destination "/queue/a"} "baz!"))
     (stomp/with-connection s2 {:login "baz" :password "password"}
-      (stomp/subscribe s2 {:destination "/queue/foo"})
-      (let [received (stomp/receive s2)]
-        (is (= :MESSAGE (:type received)))
-        (is (= "/queue/foo" (get-in received [:headers :destination])))
-        (is (= "zap!" (:body received)))))))
+      (stomp/subscribe s2 {:destination "/queue/a"})
+      (is (= "zap!" (:body (stomp/receive s2))))
+      (is (= "baz!" (:body (stomp/receive s2)))))))

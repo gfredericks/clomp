@@ -1,10 +1,10 @@
 (ns stomp
   (:refer-clojure :exclude [send])
-  (:use [clojure.string :only [join]]
-        [clojure.java.io :only [reader writer]])
+  (:use [clojure.string :only [join]])
+  (:require [clojure.java.io :as io])
   (:import [java.net Socket]))
 
-(defprotocol Stomp  
+(defprotocol Stomp
   (connect     [mq headers])
   (send        [mq headers body])
   (subscribe   [mq headers])
@@ -20,10 +20,13 @@
 (def *session-id* nil)
 (def *connection* nil)
 
+(defn assert-frame-type [type frame]
+  (if-not (= type (:type frame))
+    (throw (Exception. (str (get-in frame [:headers :message]) "\n" (:body frame))))))
+
 (defmacro with-connection [mq headers & forms]
   `(let [frame# (connect ~mq ~headers)]
-     (if-not (= :CONNECTED (:type frame#))
-       (throw (Exception. (:message frame#))))
+     (assert-frame-type :CONNECTED frame#)
      (binding [*connection* ~mq
                *session-id* (get-in frame# [:headers :session])]
        (try
@@ -32,14 +35,12 @@
           (disconnect ~mq))))))
 
 (defn- send-frame [socket command headers & [body]]
-  (binding [*out* (writer socket)]
+  (binding [*out* (io/writer socket)]
     (println command)
-    (println (join "\n" (map (comp (partial join ":") (partial map name)) headers)))
-    (if body      
-      (println (str "content-length:" (count body))))
+    (println (join "\n" (for [[k v] headers] (str (name k) ":" v))))
+    (if body (println (str "content-length:" (count body))))
     (println)
-    (if body
-      (print body))
+    (if body (print body))
     (print "\0")
     (flush)))
 
@@ -55,7 +56,7 @@
     (let [length (Integer/parseInt length)
           buffer (char-array length)]
       (.read *in* buffer 0 length)
-      (.read *in*)
+      (.read *in*) ; consume \0
       (String. buffer))
     (loop [string ""]
       (let [c (.read *in*)]
@@ -66,7 +67,7 @@
 (defrecord Frame [type headers body])
 
 (defn- receive-frame [socket]
-  (binding [*in* (reader socket)]
+  (binding [*in* (io/reader socket)]
     (let [type    (keyword (read-line))
           headers (read-headers)
           body    (read-body (:content-length headers))]
@@ -85,3 +86,15 @@
   (disconnect  [s]              (send-frame s "DISCONNECT"  {}))
   (receive     [s]              (receive-frame s))
   (clone       [s] (doto (Socket.) (.connect (.getRemoteSocketAddress s)))))
+
+(defn outstream [mq headers]
+  (stomp.OutputStream. mq headers))
+
+(defn instream [mq]
+  (stomp.InputStream. mq))
+
+(defn writer [mq headers]
+  (io/writer (outstream mq headers)))
+
+(defn reader [mq]
+  (io/reader (instream mq)))
