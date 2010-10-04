@@ -90,14 +90,14 @@
   (receive     [s]              (receive-frame s))
   (clone       [s] (doto (Socket.) (.connect (.getRemoteSocketAddress s)))))
 
-(defn outstream [mq headers]
-  (stomp.OutputStream. mq headers))
+(defmacro outstream [mq headers]
+  `(stomp.OutputStream. ~mq ~headers))
 
-(defn instream [mq]
-  (stomp.InputStream. mq))
+(defmacro instream [mq]
+  `(stomp.InputStream. ~mq))
 
-(defn writer [mq headers]
-  (io/writer (outstream mq headers)))
+(defmacro writer [mq headers]
+  `(io/writer (outstream ~mq ~headers)))
 
-(defn reader [mq]
-  (io/reader (instream mq)))
+(defmacro reader [mq]
+  `(io/reader (instream ~mq)))
