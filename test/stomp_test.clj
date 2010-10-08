@@ -29,7 +29,7 @@
 
 (deftest two-clients
   (let [s1 (java.net.Socket. "localhost" 61613)
-        s2 (stomp/clone s1)]
+        s2 (java.net.Socket. "localhost" 61613)]
     (stomp/with-connection s1 {:login "foo" :password "secret"}
       (stomp/send s1 {:destination "/queue/a"} "zap!")
       (stomp/send s1 {:destination "/queue/a"} "baz!"))
@@ -37,3 +37,21 @@
       (stomp/subscribe s2 {:destination "/queue/a"})
       (is (= "zap!" (:body (stomp/receive s2))))
       (is (= "baz!" (:body (stomp/receive s2)))))))
+
+(deftest three-clients
+  (let [s1 (java.net.Socket. "localhost" 61613)
+        s2 (java.net.Socket. "localhost" 61613)
+        s3 (java.net.Socket. "localhost" 61613)]
+    (stomp/with-connection s1 {:login "foo" :password "secret"}
+      (stomp/send s1 {:destination "/queue/a"} "1")
+      (stomp/send s1 {:destination "/queue/a"} "2")
+      (stomp/send s1 {:destination "/queue/a"} "3")
+      (stomp/send s1 {:destination "/queue/a"} "4"))
+    (stomp/with-connection s2 {:login "baz" :password "password"}
+      (stomp/subscribe s2 {:destination "/queue/a"})
+      (is (= "1" (:body (stomp/receive s2))))
+      (is (= "2" (:body (stomp/receive s2)))))
+    (stomp/with-connection s3 {:login "baz" :password "password"}
+      (stomp/subscribe s3 {:destination "/queue/a"})
+      (is (= "3" (:body (stomp/receive s3))))
+      (is (= "4" (:body (stomp/receive s3)))))))

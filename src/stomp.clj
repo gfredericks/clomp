@@ -4,35 +4,8 @@
   (:require [clojure.java.io :as io])
   (:import [java.net Socket]))
 
-(defprotocol Stomp
-  (connect     [mq headers])
-  (send        [mq headers body])
-  (subscribe   [mq headers])
-  (unsubscribe [mq headers])
-  (begin       [mq headers])
-  (commit      [mq headers])
-  (abort       [mq headers])
-  (ack         [mq headers])
-  (disconnect  [mq])
-  (receive     [mq])
-  (clone       [mq]))
-
 (def *session-id* nil)
 (def *connection* nil)
-
-(defn assert-frame-type [type frame]
-  (if-not (= type (:type frame))
-    (throw (Exception. (str (get-in frame [:headers :message]) "\n" (:body frame))))))
-
-(defmacro with-connection [mq headers & forms]
-  `(let [frame# (connect ~mq ~headers)]
-     (assert-frame-type :CONNECTED frame#)
-     (binding [*connection* ~mq
-               *session-id* (get-in frame# [:headers :session])]
-       (try
-         ~@forms
-         (finally
-          (disconnect ~mq))))))
 
 (defn- send-frame [out command headers & [body]]
   (binding [*out* (io/writer out)]
@@ -69,35 +42,42 @@
 
 (defrecord Frame [type headers body])
 
-(defn- receive-frame [in]
+(defn receive [in & [type]]
   (binding [*in* (io/reader in)]
     (let [type    (keyword (read-line))
           headers (read-headers)
-          body    (read-body *in* (:content-length headers))]
-      (Frame. type headers body))))
+          body    (read-body *in* (:content-length headers))
+          frame   (Frame. type headers body)]
+      (if (and type (not= type (:type frame)))
+        (throw (Exception. (str (format  "expected %s frame, got %s\n" type (:type frame))
+                                (get-in frame [:headers :message]) "\n" (:body frame))))
+        frame))))
 
-(extend-type Socket
-  Stomp
-  (connect     [s headers]      (send-frame s "CONNECT"     headers) (receive-frame s))
-  (send        [s headers body] (send-frame s "SEND"        headers body))
-  (subscribe   [s headers]      (send-frame s "SUBSCRIBE"   headers))
-  (unsubscribe [s headers]      (send-frame s "UNSUBSCRIBE" headers))
-  (begin       [s headers]      (send-frame s "BEGIN"       headers))
-  (commit      [s headers]      (send-frame s "COMMIT"      headers))
-  (abort       [s headers]      (send-frame s "ABORT"       headers))
-  (ack         [s headers]      (send-frame s "ACK"         headers))
-  (disconnect  [s]              (send-frame s "DISCONNECT"  {}))
-  (receive     [s]              (receive-frame s))
-  (clone       [s] (doto (Socket.) (.connect (.getRemoteSocketAddress s)))))
+(defn connect     [s headers]      (send-frame s "CONNECT"     headers) (receive s :CONNECTED))
+(defn send        [s headers body] (send-frame s "SEND"        headers body))
+(defn subscribe   [s headers]      (send-frame s "SUBSCRIBE"   headers))
+(defn unsubscribe [s headers]      (send-frame s "UNSUBSCRIBE" headers))
+(defn begin       [s headers]      (send-frame s "BEGIN"       headers))
+(defn commit      [s headers]      (send-frame s "COMMIT"      headers))
+(defn abort       [s headers]      (send-frame s "ABORT"       headers))
+(defn ack         [s headers]      (send-frame s "ACK"         headers))
+(defn disconnect  [s]              (send-frame s "DISCONNECT"  {}))
 
-(defmacro outstream [mq headers]
-  `(stomp.OutputStream. ~mq ~headers))
+(defmacro with-connection [s headers & forms]
+  `(let [frame# (connect ~s ~headers)]
+     (binding [*connection* ~s
+               *session-id* (get-in frame# [:headers :session])]
+       (try ~@forms
+            (finally (disconnect ~s))))))
 
-(defmacro instream [mq]
-  `(stomp.InputStream. ~mq))
+(defmacro outstream [s headers]
+  `(stomp.OutputStream. ~s ~headers))
 
-(defmacro writer [mq headers]
-  `(io/writer (outstream ~mq ~headers)))
+(defmacro instream [s]
+  `(stomp.InputStream. ~s))
 
-(defmacro reader [mq]
-  `(io/reader (instream ~mq)))
+(defmacro writer [s headers]
+  `(io/writer (outstream ~s ~headers)))
+
+(defmacro reader [s]
+  `(io/reader (instream ~s)))
