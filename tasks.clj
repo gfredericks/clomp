@@ -1,0 +1,1 @@
+(deftask test #{compile})

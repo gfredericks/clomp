@@ -1,8 +1,8 @@
-(ns stomp.streams
-  (:require stomp))
+(ns clomp.streams
+  (:require [clomp.core :as clomp]))
 
 (gen-class
- :name         stomp.OutputStream
+ :name         clomp.OutputStream
  :prefix       output-
  :extends      java.io.OutputStream
  :state        state
@@ -27,16 +27,16 @@
     (swap! buffer
       (fn [buffer]
         (if (seq buffer)
-          (stomp/send mq headers (apply str (map char buffer))))
+          (clomp/send mq headers (apply str (map char buffer))))
         []))))
 
 (defn output-close [this]
   (.flush this)
   (let [[mq headers _] (.state this)]
-    (stomp/send mq (assoc headers :eof true) "")))
+    (clomp/send mq (assoc headers :eof true) "")))
 
 (gen-class
- :name            stomp.InputStream
+ :name            clomp.InputStream
  :prefix          input-
  :extends         java.io.InputStream
  :state           state
@@ -54,13 +54,13 @@
       0)))
 
 (defn- read-frame [frame mq]
-  (loop [{:keys [body headers] :as frame} (or frame (stomp/receive mq))
+  (loop [{:keys [body headers] :as frame} (or frame (clomp/receive mq))
          offset (or (:offset frame) 0)]
     (if (:eof headers)
       (assoc frame :byte -1)
       (if (< offset (count body))
         (assoc frame :offset (inc offset) :byte (int (.charAt body offset)))
-        (recur (stomp/receive mq) 0)))))
+        (recur (clomp/receive mq) 0)))))
 
 (defn input-read
   ([this b] (.readSuper this b))

@@ -1,4 +1,4 @@
-(ns stomp
+(ns clomp.core
   (:refer-clojure :exclude [send])
   (:use [clojure.string :only [join]])
   (:require [clojure.java.io :as io])
@@ -71,10 +71,10 @@
             (finally (disconnect ~s))))))
 
 (defmacro outstream [s headers]
-  `(stomp.OutputStream. ~s ~headers))
+  `(clomp.OutputStream. ~s ~headers))
 
 (defmacro instream [s]
-  `(stomp.InputStream. ~s))
+  `(clomp.InputStream. ~s))
 
 (defmacro writer [s headers]
   `(io/writer (outstream ~s ~headers)))
